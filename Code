@@ -1,0 +1,306 @@
+"""AI-Enhanced Weather Advisor - Demonstrating Jac Steps 5 & 6"""
+import random;
+import from mtllm.llms { OpenAI, Gemini }
+
+# Step 6: AI Integration
+glob llm = Gemini(model_name="gemini-1.5-flash", verbose=False);
+# glob llm = OpenAI(model_name="gpt-4o", verbose=False);
+
+# Step 6: AI-powered functions
+"""Generate clothing recommendations based on weather conditions"""
+def suggest_outfit(temp: int, condition: str, humidity: int) -> str by llm();
+
+"""Provide activity suggestions based on weather"""
+def suggest_activities(temp: int, condition: str, location: str) -> str by llm();
+
+"""Give weather-related health tips"""
+def health_tips(temp: int, condition: str, air_quality: str) -> str by llm();
+
+# Weather advisor walker
+walker WeatherAdvisor {
+    has location: str = "Unknown";
+    has request_type: str = "forecast";
+    
+    can get_weather with `root entry;
+    can get_recommendations with `root entry;
+    can get_health_advice with `root entry;
+    can save_preference with `root entry;
+}
+
+# Weather data node
+node weather_data {
+    has location: str;
+    has temperature: int;
+    has condition: str;
+    has humidity: int;
+    has air_quality: str;
+    has timestamp: str = "2025-01-16 10:00";
+}
+
+# User preferences node
+node user_preferences {
+    has location: str;
+    has preferred_activities: list = [];
+    has clothing_style: str = "casual";
+    has health_concerns: list = [];
+}
+
+# Step 5: Scale Agnostic - Same code works locally and in cloud
+with entry:_main_ {
+    print("=== AI-Enhanced Weather Advisor - Local Mode ===\n");
+    
+    # Demo: Get weather for different locations
+    locations = ["New York", "London", "Tokyo"];
+    
+    for location in locations {
+        print(f"\n--- Weather for {location} ---");
+        root spawn WeatherAdvisor(location, "forecast");
+        
+        print(f"\n--- AI Recommendations for {location} ---");
+        root spawn WeatherAdvisor(location, "recommendations");
+        
+        print(f"\n--- Health Tips for {location} ---");
+        root spawn WeatherAdvisor(location, "health");
+        print("-" * 40);
+    }
+    
+    # Demo: Save user preferences
+    print("\n--- Saving User Preferences ---");
+    root spawn WeatherAdvisor("New York", "preference");
+}
+
+# Mock weather data generator (in real app, this would call a weather API)
+def generate_weather_data(location: str) -> dict {
+    conditions = ["sunny", "cloudy", "rainy", "snowy"];
+    air_qualities = ["good", "moderate", "poor"];
+    
+    return {
+        "temperature": random.randint(-10, 35),
+        "condition": random.choice(conditions),
+        "humidity": random.randint(30, 90),
+        "air_quality": random.choice(air_qualities)
+    };
+}
+
+# Step 6: AI-Enhanced Implementation
+impl WeatherAdvisor.get_weather {
+    # Generate or retrieve weather data
+    weather_info = generate_weather_data(self.location);
+    
+    # Store weather data
+    existing_weather = [root --> (`?weather_data) if _.location == self.location];
+    if existing_weather {
+        weather_node = existing_weather[0];
+        weather_node.temperature = weather_info["temperature"];
+        weather_node.condition = weather_info["condition"];
+        weather_node.humidity = weather_info["humidity"];
+        weather_node.air_quality = weather_info["air_quality"];
+    } else {
+        weather_node = root ++> weather_data(
+            location=self.location,
+            temperature=weather_info["temperature"],
+            condition=weather_info["condition"],
+            humidity=weather_info["humidity"],
+            air_quality=weather_info["air_quality"]
+        );
+    }
+    
+    print(f"🌤  Weather in {self.location}:");
+    print(f"   Temperature: {weather_info['temperature']}°C");
+    print(f"   Condition: {weather_info['condition']}");
+    print(f"   Humidity: {weather_info['humidity']}%");
+    print(f"   Air Quality: {weather_info['air_quality']}");
+    
+    # Step 5: Return API-friendly format
+    return {
+        "location": self.location,
+        "temperature": weather_info["temperature"],
+        "condition": weather_info["condition"],
+        "humidity": weather_info["humidity"],
+        "air_quality": weather_info["air_quality"],
+        "timestamp": weather_node.timestamp
+    };
+}
+
+impl WeatherAdvisor.get_recommendations {
+    # Get weather data for the location
+    weather_nodes = [root --> (`?weather_data) if _.location == self.location];
+    
+    if not weather_nodes {
+        # Generate weather data if not exists
+        root spawn WeatherAdvisor(self.location, "forecast");
+        weather_nodes = [root --> (`?weather_data) if _.location == self.location];
+    }
+    
+    weather = weather_nodes[0];
+    
+    # Step 6: AI-powered outfit suggestions
+    outfit_suggestion = suggest_outfit(
+        weather.temperature, 
+        weather.condition, 
+        weather.humidity
+    );
+    
+    # Step 6: AI-powered activity suggestions
+    activity_suggestion = suggest_activities(
+        weather.temperature, 
+        weather.condition, 
+        self.location
+    );
+    
+    print(f"👔 Outfit Recommendation: {outfit_suggestion}");
+    print(f"🎯 Activity Suggestions: {activity_suggestion}");
+    
+    return {
+        "location": self.location,
+        "outfit_recommendation": outfit_suggestion,
+        "activity_suggestions": activity_suggestion,
+        "based_on": {
+            "temperature": weather.temperature,
+            "condition": weather.condition,
+            "humidity": weather.humidity
+        }
+    };
+}
+
+impl WeatherAdvisor.get_health_advice {
+    # Get weather data
+    weather_nodes = [root --> (`?weather_data) if _.location == self.location];
+    
+    if not weather_nodes {
+        root spawn WeatherAdvisor(self.location, "forecast");
+        weather_nodes = [root --> (`?weather_data) if _.location == self.location];
+    }
+    
+    weather = weather_nodes[0];
+    
+    # Step 6: AI-powered health tips
+    health_advice = health_tips(
+        weather.temperature,
+        weather.condition,
+        weather.air_quality
+    );
+    
+    print(f"🏥 Health Tips: {health_advice}");
+    
+    return {
+        "location": self.location,
+        "health_advice": health_advice,
+        "conditions": {
+            "temperature": weather.temperature,
+            "condition": weather.condition,
+            "air_quality": weather.air_quality
+        }
+    };
+}
+
+impl WeatherAdvisor.save_preference {
+    # Check if preferences exist
+    existing_prefs = [root --> (`?user_preferences) if _.location == self.location];
+    
+    if existing_prefs {
+        prefs = existing_prefs[0];
+        print(f"📝 Updated preferences for {self.location}");
+    } else {
+        prefs = root ++> user_preferences(
+            location=self.location,
+            preferred_activities=["walking", "reading"],
+            clothing_style="casual",
+            health_concerns=["allergies"]
+        );
+        print(f"📝 Saved new preferences for {self.location}");
+    }
+    
+    return {
+        "location": self.location,
+        "preferences": {
+            "preferred_activities": prefs.preferred_activities,
+            "clothing_style": prefs.clothing_style,
+            "health_concerns": prefs.health_concerns
+        }
+    };
+}
+
+# Step 5: Unified API walker for cloud deployment
+walker WeatherAPI {
+    has location: str = "New York";
+    has action: str = "weather";
+    has preferences: dict = {};
+    
+    can handle_request with `root entry;
+}
+
+impl WeatherAPI.handle_request {
+    # Step 5: Single endpoint handling multiple weather services
+    
+    if self.action == "weather" {
+        return root spawn WeatherAdvisor(self.location, "forecast");
+    }
+    elif self.action == "recommendations" {
+        return root spawn WeatherAdvisor(self.location, "recommendations");
+    }
+    elif self.action == "health" {
+        return root spawn WeatherAdvisor(self.location, "health");
+    }
+    elif self.action == "full_report" {
+        # Comprehensive report combining all services
+        weather_data = root spawn WeatherAdvisor(self.location, "forecast");
+        recommendations = root spawn WeatherAdvisor(self.location, "recommendations");
+        health_advice = root spawn WeatherAdvisor(self.location, "health");
+        
+        return {
+            "location": self.location,
+            "weather": weather_data,
+            "recommendations": recommendations,
+            "health": health_advice,
+            "report_type": "comprehensive"
+        };
+    }
+    else {
+        return {
+            "error": "Invalid action",
+            "valid_actions": ["weather", "recommendations", "health", "full_report"]
+        };
+    }
+}
+
+# Step 5: Quick status check
+walker SystemStatus {
+    can check with `root entry;
+}
+
+impl SystemStatus.check {
+    weather_locations = [root --> (`?weather_data)];
+    user_prefs = [root --> (`?user_preferences)];
+    
+    return {
+        "service": "AI Weather Advisor",
+        "status": "operational",
+        "version": "1.0.0",
+        "data": {
+            "weather_locations": len(weather_locations),
+            "user_preferences": len(user_prefs),
+            "locations_tracked": [w.location for w in weather_locations]
+        }
+    };
+}
+
+# Step 5: Simple location-based walker
+walker LocationWeather {
+    has city: str;
+    
+    can quick_check with `root entry;
+}
+
+impl LocationWeather.quick_check {
+    # Step 5: Demonstrates how simple walkers become instant APIs
+    weather_result = root spawn WeatherAdvisor(self.city, "forecast");
+    ai_tips = root spawn WeatherAdvisor(self.city, "recommendations");
+    
+    return {
+        "city": self.city,
+        "current_weather": weather_result,
+        "ai_recommendations": ai_tips,
+        "quick_tip": f"Check the weather in {self.city} before heading out!"
+    };
+}

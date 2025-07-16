@@ -1,4 +1,4 @@
-# JacAssignment1
+# Team TRIFECTA
 # AI-Enhanced Weather Advisor - Usage Guide
 
 ## Overview
@@ -19,20 +19,20 @@ jac run weather_advisor.jac
 === AI-Enhanced Weather Advisor - Local Mode ===
 
 --- Weather for New York ---
-🌤  Weather in New York:
+   Weather in New York:
    Temperature: 15°C
    Condition: sunny
    Humidity: 45%
    Air Quality: good
 
 --- AI Recommendations for New York ---
-👔 Outfit Recommendation: Perfect weather for a light jacket and comfortable jeans! 
+    Outfit Recommendation: Perfect weather for a light jacket and comfortable jeans! 
    The sunny skies call for sunglasses too. ☀
-🎯 Activity Suggestions: Great day for a walk in Central Park or outdoor café hopping! 
+    Activity Suggestions: Great day for a walk in Central Park or outdoor café hopping! 
    The pleasant temperature is perfect for sightseeing.
 
 --- Health Tips for New York ---
-🏥 Health Tips: With good air quality and mild temperature, it's perfect for outdoor 
+    Health Tips: With good air quality and mild temperature, it's perfect for outdoor 
    exercise! Stay hydrated and enjoy the sunshine for vitamin D.
 
 
@@ -199,3 +199,8 @@ This pattern works for:
    
 
 The same AI-enhanced weather logic seamlessly transitions from local CLI tool to cloud-ready API service!
+
+# Team members:
+G.J.A.Donacia
+T.Mathusayini
+P.Pingalan
